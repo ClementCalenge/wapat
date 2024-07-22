@@ -1,0 +1,14 @@
+Package: wapat
+Type: Package
+Title: Effect of Flock Protection Measures on Wolf Behaviour
+Version: 1.0
+Date: 2024-04-18
+Author: Clement Calenge <clement.calenge@ofb.gouv.fr>
+Maintainer: Clement Calenge <clement.calenge@ofb.gouv.fr>
+Depends: R (>= 4.0.0)
+Imports: stats, rjags, rstanarm
+Suggests: ggplot2, coda, dplyr, rlang, nimble, knitr
+Description: This package contains the code and data used by Simon et al. to study the wolf in depredation hotspots.
+VignetteBuilder: knitr
+License: GPL (>= 2)
+NeedsCompilation: no

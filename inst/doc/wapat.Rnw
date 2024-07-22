@@ -1,0 +1,917 @@
+\documentclass[a4paper]{article}
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{Wolves on the hunt in sheep depredation hotspots in France}
+%\VignetteDepends{knitr,ggplot2,nimble,coda}
+\usepackage{fancyvrb}
+\usepackage{color}
+\usepackage{url}
+\usepackage{amsfonts}
+%\usepackage{pdfcolmk}
+\usepackage{epsfig}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+%\usepackage{longtable}
+\usepackage{natbib}
+\usepackage{ucs}
+\usepackage{savesym}
+\savesymbol{iint}
+\savesymbol{iiint}
+\usepackage{amsmath}
+%\usepackage{rotating}
+\usepackage[title,titletoc]{appendix}
+%\usepackage[utf8]{inputenc}
+\newlength{\defaultparindent}
+\setlength{\defaultparindent}{\parindent}
+\newenvironment{Default Paragraph Font}{}{}
+\newcommand{\INT}[1]{\stackrel{\circ}{#1}}
+\topmargin -1.5cm
+\headheight 0.5cm
+\headsep 1.0cm
+\topskip 0.5cm
+\textheight 24.5cm
+\footskip 1.0cm
+\oddsidemargin 0.0cm
+\evensidemargin 0.0cm
+\textwidth 16cm
+\parskip 0.2cm
+\parindent 1.0cm
+\baselineskip 0.2cm
+
+
+\title{Appendix B of the article: Wolves on the hunt in sheep depredation hotspots in France.}
+\author{Ricardo N. Simon, Cl\'{e}ment Calenge, Pierre-Yves Quenette,
+  Nicolas Jean\\ \& Nolwenn Drouet-Hoguet.}  \date{}
+\setlength{\parindent}{0cm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+  
+<<setup, include=FALSE, cache=FALSE>>=
+# set global chunk options
+library('knitr')
+opts_chunk$set(fig.path="wapat-",
+               fig.align="center",
+               fig.show="hold",
+               echo=TRUE,
+               results="markup",
+               fig.width=10,
+               fig.height=10, out.width='\\linewidth',
+               out.height='\\linewidth',
+               cache=FALSE,
+               dev='png',
+               concordance=TRUE,
+               error=FALSE)
+opts_knit$set(aliases = c(h = 'fig.height',
+              w = 'fig.width',
+              wo='out.width',
+              ho='out.height'))
+options(replace.assign=TRUE,width=60)
+set.seed(9567)
+@
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%                                                            %%%%
+%%%%                  The vignette starts here                  %%%%
+%%%%                                                            %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+
+\section{Introduction}
+
+
+This vignette corresponds to the appendix B of the article of
+\citet{Simoninprep}. The aim of this paper is to model the predatory
+sequence of wolves in sheep depredation hotspots in France from 2017
+to 2021. A companion package named \texttt{wapat} contains the data
+and functions used for this paper, and is required to reproduce the
+calculations in this document. The present document is also available
+as a vignette of this package. To install this package, first install
+the package \texttt{devtools} and use the function
+\texttt{install\_github} to install \texttt{wapat}:
+
+<<eval=FALSE>>=
+## If devtools is not yet installed, type
+install.packages("devtools")
+
+## Install the package badgertub
+devtools::install_github("ClementCalenge/wapat", ref="main")
+@ 
+
+\textit{Remark}: on Windows, it is required to also install the Rtools
+(\url{https://cran.r-project.org/bin/windows/Rtools/}) on your
+computer to have a working \texttt{devtools} package (see
+\url{https://www.r-project.org/nosvn/pandoc/devtools.html}).\\
+
+Throughout this vignette, we suppose that the reader is familiar with
+the models and simulations developed in the main paper. We give the R
+code used to fit the models and assess the power of our model to
+detect the effect of preventive measures (livestock guarding dogs,
+LGD, and fence) on the probabilities of approach and attack by the
+wolf. We also present additional checks of
+the fitted models (goodness of fit, MCMC convergence).\\
+
+\newpage
+
+\section{R code used to fit the model}
+\label{sec:r-code-used}
+
+We first describe the R code used to fit the models describing the
+depredatory behavior of wolves.
+
+\subsection{The data}
+\label{sec:model-fit}
+
+We load the package containing the code and data:
+
+<<load-wapat>>=
+library(wapat)
+@ 
+
+And then, we load the dataset:
+
+<<load-dataset>>=
+data(hotspotwolf)
+str(hotspotwolf)
+@
+
+The dataset \texttt{hotspotwolf} is a data.frame containing contains the following variables:
+
+\begin{itemize}
+\item \textbf{\texttt{weather}}: a 0/1 vector indicating whether
+  visibility was clear and overcast (1) or not (0) during the
+  intervention, as assessed by observers.
+
+\item \textbf{\texttt{habitat}}: a 0/1 vector indicating whether
+  habitat was predominantly closed (1) or open (0) during the
+  intervention, as assessed by observers.
+
+\item \textbf{\texttt{flock.id}}: an integer vector indicating the ID
+  of the flock protected by the intervention.
+
+\item \textbf{\texttt{shot}}: a 0/1 vector indicating whether a shot
+  was fired or not during the intervention.
+
+\item \textbf{\texttt{dog.presence}}: a 0/1 vector indicating the
+  presence (1) or absence (0) of livestock guarding dogs protecting the
+  flock.
+
+\item \textbf{\texttt{fence.presence}}: a 0/1 vector indicating the
+  presence (1) or absence (0) of fences protecting the flock.
+
+\item \textbf{\texttt{depredation.pressure}}: a 0/1 vector indicating
+  whether the intervention type was simple, i.e. with a single shooter
+  (0), or reinforced, i.e. with multiple shooters (1).
+
+\item \textbf{\texttt{approach}}: a 0/1 vector indicating whether the
+  wolf approached the flock (1) or not (0) during the intervention, as
+  assessed by observers.
+
+\item \textbf{\texttt{attack}}: a 0/1 vector indicating whether the
+  wolf attacked the flock (1) or not (0) during the intervention, as
+  assessed by observers.
+
+\item \textbf{\texttt{year}}: a numeric vector indicating the year of
+  the intervention.
+
+\item \textbf{\texttt{shotwolf}}: a 0/1 vector indicating whether a
+  shot was fired (1) or not (0) just after detection.
+
+\item \textbf{\texttt{shotappr}}: a 0/1 vector indicating whether a
+  shot was fired or not just after an approach was diagnosed.
+
+\item \textbf{\texttt{shotatta}}: a 0/1 vector indicating whether a
+  shot was fired or not just after an attack was diagnosed.
+
+\item \textbf{\texttt{obs.id}}: a numeric vector containing the ID of
+  the observer.\\
+\end{itemize}
+
+
+We also load the package \texttt{nimble}, required for the model fit.
+
+<<load-nimble>>=
+library(nimble)
+@ 
+
+\subsection{Complete model (with interactions between fences and livestock
+  guarding dogs)}
+\label{sec:complete-model-with}
+
+\subsubsection{Model fit}
+\label{sec:model-fit-1}
+
+We program the complete model (effect of all predictive variables +
+interactions of effects of livestock guarding dogs and fences on the
+probabilities of approach and attack by the wolf) with the script
+language used by the package \texttt{nimble}. This code is available
+as the dataset \texttt{ModelWithVariables} in the package. We show
+this code below:
+
+<<code-nimble-infection-model>>=
+data(ModelWithVariables)
+ModelWithVariables
+@ 
+
+We then prepare the dataset for the model fit with
+\texttt{nimble}. Two lists are required: a list with the dataset
+(response and predictive variables) and a list with the constants used
+in the model (number of observations, ID of observers, ID of year,
+etc.):
+
+<<prepare-dataset>>=
+## List with data
+dataWf <- list(shotwolf=hotspotwolf$shotwolf,
+               approach=hotspotwolf$approach,
+               attack=hotspotwolf$attack,
+               shotappr=hotspotwolf$shotappr,
+               shotatta=hotspotwolf$shotatta,
+               X =cbind(1, hotspotwolf$weather, hotspotwolf$habitat,
+                        hotspotwolf$depredation.pressure,
+                        hotspotwolf$dog.presence, hotspotwolf$fence.presence,
+                        hotspotwolf$dog.presence*hotspotwolf$fence.presence))
+
+## List with constant values
+constWf <-  list(n=nrow(hotspotwolf),
+                 year=hotspotwolf$year-2016,
+                 flock.id=as.numeric(factor(hotspotwolf$flock.id)),
+                 nyear=max(hotspotwolf$year-2016))
+constWf$obs.id <- hotspotwolf$obs.id
+constWf$nobs <- max(hotspotwolf$obs.id)
+constWf$nflock <- max(constWf$flock.id)
+constWf$nvar <- ncol(dataWf$X)
+@ 
+
+
+We also have defined a dataset named \texttt{initValues} in the
+package to store the starting values for the parameters of the model:
+
+<<starting-values-model>>=
+data(initValues)
+str(initValues)
+@ 
+
+And finally, we use the function \texttt{nimbleMCMC()} from the
+package \texttt{nimble} to fit this model, directly passing the
+components \texttt{dataWf} and \texttt{constWF} as arguments to this
+function. We sample 3 chains of 400000 MCMC samples after a burn-in
+period of 40000 samples. To save disk space, we thin the chain by
+recording one sample every 400. WARNING: THIS CALCULATION TAKES A VERY
+LONG TIME!!!!  Note that we have included the results of this
+calculation as a dataset of the package, so that the reader does not
+need to launch this function to reproduce further calculations:
+
+<<model-fit, eval=FALSE>>=
+## For reproducibility
+set.seed(77)
+
+mcmcComplete <- nimbleMCMC(code = ModelWithVariables, constants = constWf,
+                           data = dataWf, thin=400, inits=initValues,
+                           nchains = 3, niter = 440000, nburnin=40000,
+                           monitors=c("a_at","a_ap","a_sa","a_st","a_sw",
+                                      "sigmayear_ap",
+                                      "sigmayear_at",
+                                      "sigmayear_sw",
+                                      "sigmayear_sa",
+                                      "sigmayear_st",
+                                      "sigmaobs_at",
+                                      "sigmaobs_ap",
+                                      "sigmaobs_sw",
+                                      "sigmaobs_sa",
+                                      "sigmaobs_st"),
+                           samplesAsCodaMCMC=TRUE,
+                           setSeed=77)
+@ 
+
+The results of this fit (an object of class \texttt{mcmc.list}) are
+available in the dataset \texttt{mcmcComplete} of the package:
+
+<<load-results-model-fit>>=
+data(mcmcComplete)
+str(mcmcComplete)
+@ 
+
+
+<<load-coda-silent, echo=FALSE>>=
+library(coda)
+@ 
+
+The reader can check visually the convergence of the chain by plotting
+these elements (we do not show this plot in this document to save 
+space, but the reader is encouraged to display it):
+
+<<plot-chains, eval=FALSE>>=
+library(coda)
+par(ask=TRUE) ## press enter for next set of graphs
+plot(mcmcComplete)
+@ 
+
+We can check more formally this convergence for the parameters of the
+model with the diagnostic of \citet{Gelman1992} (here, we show only
+the maximum value of the upper bounds of the confidence interval taken
+over all the parameters of the model, again to save space in this
+document, but here too the reader is encouraged to display the
+complete results of \texttt{gelman.diag()}:
+
+<<gelman-diag-complete>>=
+max(gelman.diag(mcmcComplete, multivariate=FALSE)$psrf[,"Upper C.I."])
+@ 
+
+These diagnostics are all lower than 1.1, as recommended by
+\citet{Gelman1992}. The chain convergence is satisfying.\\
+
+\subsubsection{Parameter estimates}
+\label{sec:parameter-estimates}
+
+We then show the parameter estimates (as well as the 90\% credible
+intervals on these parameters) for the two response variables of
+interest (probabilities of approach and attack):
+
+<<complete-model-parameter-estimates>>=
+mo <- do.call(rbind, mcmcComplete)
+estim <- apply(mo,2, \(x)
+paste0(round(mean(x),2), " (",
+       round(quantile(x,0.05),2), ", ",
+       round(quantile(x,0.95),2),")"))
+
+estim <- c(estim[1:7], "",estim[8:14])
+nom <- c("Intercept", "weather", "habitat", "depredation.pressure",
+         "dog.presence", "fence.presence", "interaction dog.fence")
+dfo <- data.frame(Name=c(paste0(nom,"_approach"), "",
+                        paste0(nom,"_attack")),
+                  Estimation=estim)
+row.names(dfo) <- 1:nrow(dfo)
+print(dfo)
+@
+
+This table shows that the interaction between the effects of livestock
+guarding dogs and fences is not significantly different from 0 (the
+credible interval includes 0). Note that the values for the
+interactions (and credible intervals) are displayed in
+the last row of Tab. 3 in the paper.\\
+
+It is difficult to interpret the simple effects of the preventive
+measures when interactions are included in a model. For this reason,
+we fit again this model without the interaction.
+
+\subsection{Model without the interaction between fences and livestock
+  guarding dogs}
+\label{sec:model-with-inter}
+
+\subsubsection{Model fit}
+\label{sec:model-fit-2}
+
+We fit again the model, without the interactions. We therefore change
+the list containing the reponse and predictive variables, defining
+again the matrix of explanatory variables. We also update the starting
+values and the number of variables in the list of constant values:
+
+<<preparation-data-for-model-2>>=
+## We change the matrix of predictive variable (we remove the
+## interactions)
+dataWf2 <- dataWf
+dataWf2$X <- cbind(1, hotspotwolf$weather, hotspotwolf$habitat,
+                   hotspotwolf$depredation.pressure,
+                   hotspotwolf$dog.presence,
+                   hotspotwolf$fence.presence)
+
+## We change the starting values, removing the starting value for the
+## interactions
+initsf2 <- initValues
+initsf2$a_ap <- initValues$a_ap[-length(initValues$a_ap)]
+initsf2$a_at <- initValues$a_at[-length(initValues$a_at)]
+
+## Change the number of variables
+constWf$nvar <- ncol(dataWf2$X)
+@ 
+
+We then fit again the model (WARNING: THIS CALCULATION TAKES A VERY
+LONG TIME!!!!). Note that we also have included the results of this
+calculation as a dataset of the package, so that the reader does not
+need to launch this function to reproduce further calculations:
+
+<<fit-model-2, eval=FALSE>>=
+## For reproducibility
+set.seed(77)
+
+mcmcAdditive <- nimbleMCMC(code = ModelWithVariables, constants = constWf,
+                           data = dataWf2, thin=400, inits=initsf2,
+                           nchains = 3, niter = 440000, nburnin=40000,
+                           monitors=c("a_at","a_ap","a_sa","a_st","a_sw",
+                                      "sigmayear_ap",
+                                      "sigmayear_at",
+                                      "sigmayear_sw",
+                                      "sigmayear_sa",
+                                      "sigmayear_st",
+                                      "sigmaobs_at",
+                                      "sigmaobs_ap",
+                                      "sigmaobs_sw",
+                                      "sigmaobs_sa",
+                                      "sigmaobs_st"),
+                           samplesAsCodaMCMC=TRUE, setSeed=77)
+@ 
+
+The results of this fit are available in the dataset
+\texttt{mcmcAdditive} of the package:
+
+<<load-results-additive-model-fit>>=
+data(mcmcAdditive)
+@ 
+
+For this model too, the reader can check visually the convergence of
+the chain by plotting these elements (we do not show this plot in this
+document to save some space): 
+
+<<plot-chains-2, eval=FALSE>>=
+par(ask=TRUE) ## press enter for next set of graphs
+plot(mcmcAdditive)
+@ 
+
+We can check more formally this convergence for the parameters of the
+model with the diagnostic of \citet{Gelman1992} (here, we show only
+the maximum value of the upper bounds of the confidence interval on
+this diagnostic, again to save space in this document):
+
+<<gelman-diag-additive>>=
+max(gelman.diag(mcmcAdditive, multivariate=FALSE)$psrf[,"Upper C.I."])
+@ 
+
+These diagnostics are all lower than 1.1, as recommended by
+\citet{Gelman1992}. The chain convergence is satisfying.\\
+
+
+\subsubsection{Parameter estimates}
+\label{sec:parameter-estimates-2}
+
+We then show the parameter estimates (as well as the 90\% credible
+intervals on these parameters) for the two response variables of
+interest (probability of approach and attack):
+
+<<additive-model-parameter-estimates>>=
+mo <- do.call(rbind, mcmcAdditive)
+estim <- apply(mo,2, \(x)
+paste0(round(mean(x),2), " (",
+       round(quantile(x,0.05),2), ", ",
+       round(quantile(x,0.95),2),")"))
+estim <- c(estim[1:6], "",estim[7:12])
+nom <- c("Intercept", "weather", "habitat",
+         "depredation.pressure",
+         "dog.presence", "fence.presence")
+dfo <- data.frame(Name=c(paste0(nom,"_approach"), "",
+                         paste0(nom,"_attack")),
+                  Estimation=estim)
+row.names(dfo) <- 1:nrow(dfo)
+print(dfo)
+@
+
+Note that this table corresponds to Tab. 3 from the paper (except for
+the coefficients of the interactions between fences and dogs, which
+are taken from previous section). All these coefficients are
+characterized by a credible interval that includes 0.
+
+
+\subsection{Final model}
+\label{sec:final-model}
+
+\subsubsection{Model fit}
+\label{sec:model-fit-3}
+
+We therefore fit this model again without any variable (keeping only
+the random effects for the year and observers). The Nimble code for
+this final model is available as a dataset in the package:
+
+<<code-for-final-model>>=
+data(finalModel)
+finalModel
+@
+
+We prepare the data for the fit:
+
+<<data-preparation-final-model>>=
+initsLast <- initValues
+initsLast$a_ap <- initsLast$a_ap[1]
+initsLast$a_at <- initsLast$a_at[1]
+
+constWf$nvar <- NULL
+
+dataWf$X <- NULL
+@
+
+We fit this final model (WARNING: THIS CALCULATION TAKES A VERY LONG
+TIME!!!!). Note that we also have included the results of this
+calculation as a dataset of the package, so that the reader does not
+need to launch this function to reproduce further calculations:
+
+<<fit-model-final, eval=FALSE>>=
+## For reproducibility
+set.seed(77)
+mcmcFinal <- nimbleMCMC(code = finalModel, constants = constWf,
+                        data = dataWf, thin=400, inits=initsLast,
+                        nchains = 3, niter = 440000, nburnin=40000,
+                        monitors=c("a_at","a_ap","a_sa","a_st","a_sw",
+                                   "sigmayear_ap",
+                                   "sigmayear_at",
+                                   "sigmayear_sw",
+                                   "sigmayear_sa",
+                                   "sigmayear_st",
+                                   "sigmaobs_at",
+                                   "sigmaobs_ap",
+                                   "sigmaobs_sw",
+                                   "sigmaobs_sa",
+                                   "sigmaobs_st",
+                                   "obseff_at","obseff_ap","obseff_sw",
+                                   "obseff_sa","obseff_st",
+                                   "yeareff_at","yeareff_ap","yeareff_sw",
+                                   "yeareff_sa","yeareff_st"),
+                        samplesAsCodaMCMC=TRUE, setSeed=77)
+@ 
+
+The results of this fit are available in the dataset
+\texttt{mcmcFinal} of the package:
+
+<<load-results-final-model-fit>>=
+data(mcmcFinal)
+@ 
+
+For this model too, the reader can check visually the convergence of
+the chain by plotting these elements (we omit this plot, to save space
+in this document):
+
+<<plot-chains-final, eval=FALSE>>=
+par(ask=TRUE) ## press enter for next set of graphs
+plot(mcmcFinal)
+@ 
+
+We can check more formally this convergence for the parameters of
+the model with the diagnostic of \citet{Gelman1992} (similarly, we
+only show the maximum value of the upper limit on the diagnostic taken
+over all parameters, to save space in this document):
+
+<<gelman-diag-final>>=
+max(gelman.diag(mcmcFinal, multivariate=FALSE)$psrf)
+@ 
+
+These diagnostics are all lower than 1.1, as recommended by
+\citet{Gelman1992}. The chain convergence is satisfying.\\
+
+
+\subsubsection{Goodness of fit}
+\label{sec:goodness-fit}
+
+We used the approach of \citet{Gelman1996c} to check the goodness of
+fit of this final model: Each MCMC iteration $r$ generated a sampled
+value $\theta^{(r)}$ of the vector of parameters of the model
+(intercept, slopes of the variables, and random effects). For each
+simulated value $\theta^{(r)}$, we simulated a replication of the
+dataset (i.e., we simulated, for each intervention with an observed
+wolf, a variable describing whether a shot occurred just after
+detection; if no shot occurred, we then simulated the value of the
+binary variable ``approach''; if an approach was diagnosed, we then
+simulated whether a shot occurred just after this diagnostic,
+etc.). Each simulation was thus carried out with the fitted model
+parameterized by
+the vector simulated by the r-th MCMC iteration.\\
+
+We programmed a function to perform these simulations, named
+\texttt{simulateWolfDataGOF()} (see the help page of this
+function). THIS CALCULATION TAKES A VERY LONG TIME !!!! Note that we
+have included the results of this calculation as a dataset of the
+package, so that the reader does not need to launch this function to
+reproduce further calculations:
+
+<<simulate-goodness-of-fit, eval=FALSE>>=
+## For reproducibility
+set.seed(777)
+simulatedDatasetGOF <- t(sapply(1:3000,  function(x) {
+    cat(x,"\r")
+    colSums(simulateWolfDataGOF(x, mcmcFinal, constWf))
+}))
+@ 
+
+We load the results of these simulations:
+
+<<load-simus-gof>>=
+data(simulatedDatasetGOF)
+@ 
+
+We then compared summary statistics calculated on the observed dataset
+(number of interventions with a shot after detection, number of
+interventions in which a wolf approached, etc.) to the distribution of
+the same statistics derived from the simulated datasets:
+
+
+<<>>=
+ap <- paste0("[",apply(round(apply(simulatedDatasetGOF,2, quantile,c(0.05,0.95))),2,
+                       paste0,collapse=", "),"]")
+ob <- sapply(colnames(simulatedDatasetGOF), function(x) sum(dataWf[[x]]))
+data.frame(observed=ob, Expected=ap)
+@ 
+
+All these comparisons show a correct goodness of fit of the model.
+
+\subsubsection{Interpretation of the model}
+\label{sec:interpretation-model}
+
+We can now present the value of the parameters of the model:
+
+<<estimated-parameters-of-the-model>>=
+mo <- do.call(rbind, mcmcFinal)
+mob <- mo[,-c(grep("yeareff",colnames(mo)),grep("obseff",colnames(mo)))]
+
+## Warning: the model that we fit estimates the probability to have a
+## shot after observation, approach and attack.  But we are interested
+## in the probability of NO shot. The sign of the intercept must
+## therefore be changed:
+mob[,c(3:5)] <- -mob[,c(3:5)]
+
+pres <- function(x) {
+    paste0(round(mean(x),2), " (",
+                  round(quantile(x,0.05),2), ", ",
+           round(quantile(x,0.95),2),")")
+}
+u <- data.frame(Parametre=c("Intercept approach","Intercept attack",
+                       "Intercept no shot | approach",
+                       "Intercept no shot | attack",
+                       "Intercept no shot | observation",
+                       "SD obs approach",
+                       "SD obs attack",
+                       "SD obs no shot | approach",
+                       "SD obs no shot | attack",
+                       "SD obs no shot | observation",
+                       "SD year approach",
+                       "SD year attack",
+                       "SD year no shot | approach",
+                       "SD year no shot | attack",
+                       "SD year no shot | observation"),
+                Estimation=apply(mob,2, pres))
+reord <- c(5,1,3,2,4)
+u <- u[c(reord, reord+5, reord+10),]
+row.names(u) <- 1:nrow(u)
+u
+@ 
+
+This table corresponds to the first three columns of Tab. 4 of the
+paper. We can use this model to predict the mean probability of each
+step in the behavior sequence:
+
+<<estimated-mean-probability>>=
+## Estimate mean proba
+probability_approach <-  pres(1/(1+exp(-mo[,"a_ap"])))
+probability_attack <-  pres(1/(1+exp(-mo[,"a_at"])))
+probability_noshot_before_approach <-  pres(1-1/(1+exp(-mo[,"a_sw"])))
+probability_noshot_after_approach <-  pres(1-1/(1+exp(-mo[,"a_sa"])))
+probability_noshot_after_attack <-  pres(1-1/(1+exp(-mo[,"a_st"])))
+
+data.frame(Probability=c("Not shot before approach","Approach",
+                         "Not shot after approach","Attack","Not shot after attack"),
+           Estimation =c(probability_noshot_before_approach,
+                         probability_approach,
+                         probability_noshot_after_approach,
+                         probability_attack,
+                         probability_noshot_after_attack))
+@ 
+
+This corresponds to the fourth column of Tab. 4 of the paper. We also
+estimate the mean probability of each step in the behavior sequence,
+accounting for the uncertainty caused by the random effects of
+observers and years:
+
+<<estimated-probablity-with-random-effects>>=
+probability_approach2 <-  pres(1/(1+exp(-mo[,"a_ap"]+
+                                        rnorm(nrow(mo), 0, mo[,"sigmayear_ap"])+
+                                        rnorm(nrow(mo), 0, mo[,"sigmaobs_ap"]))))
+probability_attack2 <-  pres(1/(1+exp(-mo[,"a_at"]+
+                                     rnorm(nrow(mo), 0, mo[,"sigmayear_at"])+
+                                     rnorm(nrow(mo), 0, mo[,"sigmaobs_at"]))))
+probability_noshot_before_approach2 <-
+    pres(1-1/(1+exp(-mo[,"a_sw"]+
+                    rnorm(nrow(mo), 0, mo[,"sigmayear_sw"])+
+                    rnorm(nrow(mo), 0, mo[,"sigmaobs_sw"]))))
+probability_noshot_after_approach2 <-
+    pres(1-1/(1+exp(-mo[,"a_sa"]+
+                    rnorm(nrow(mo), 0, mo[,"sigmayear_sa"])+
+                    rnorm(nrow(mo), 0, mo[,"sigmaobs_sa"]))))
+probability_noshot_after_attack2 <-
+    pres(1-1/(1+exp(-mo[,"a_st"]+
+                    rnorm(nrow(mo), 0, mo[,"sigmayear_st"])+
+                    rnorm(nrow(mo), 0, mo[,"sigmaobs_st"]))))
+
+data.frame(Probability=c("No shot before approach","Approach","No shot after approach",
+                         "Attack","No shot after attack"),
+           Estimation =c(probability_noshot_before_approach2, probability_approach2,
+                         probability_noshot_after_approach2,
+                         probability_attack2,probability_noshot_after_attack2))
+@ 
+
+... which corresponds to the last column of Tab. 4 of the paper.
+
+
+\section{Simulations}
+\label{sec:simulations}
+
+In this section, we show the code used for the simulations carried out
+in the paper to assess the power of our model to detect the effect of
+preventive measures (livestock guarding dogs, fences) on the probabilities
+of approach and attack by the wolf.\\
+
+We simulated an effect of a preventive measure (either livestock
+guarding dogs or fences) on a probability of the behavioral sequence
+(either approach or attack): the strength of the effect was one of the
+pre-chosen odds-ratio values: 1, 1/2, 1/3, 1/5, 1/10, 1/30, 1/50 and
+1/100 (we only simulate odds-ratio lower than 1, as we expect the
+preventive measure to reduce the probability of approach and
+attack). For each preventive measure, each behavior of the wolf
+(approach and attack) and each strength effect, we simulate 100
+datasets using the function \texttt{simulateDataPow()}, and we fit the
+model to each dataset with the function \texttt{fitModelPow()}, both
+from the package \texttt{wapat} (see the help page of these
+functions). Model fit is carried out with MCMC. Note that in this
+simulation context, the package \texttt{rstanarm} is much simpler to
+use to fit Bayesian regression models than the package \texttt{nimble}
+that was used previously to fit the whole predatory sequence, so that
+the function \texttt{fitModelPow()} relies on \texttt{rstanarm}. Note
+also that since this function is used in a loop that simulates fake
+datasets with the function \texttt{simulateDataPow()}, a problematic
+situation may occur where the response variable takes only 0's or 1's.
+In such cases, the function \texttt{stan\_glmer()} used internally by
+\texttt{fitModelPow()} return an error. For such cases, the function
+fits the model with the function \texttt{jags.model()} from the
+package \texttt{rjags}.\\
+
+For each one of the 100 datasets/model fits, we
+store the MCMC samples for the coefficient of the tested preventive
+measure, and we calculate the 90\% credible interval on this
+parameter. We then calculate the proportion of the 100 credible
+intervals on the parameter that do not include 0 ($\approx$
+probability to detect an effect of this proportion). WARNING: THIS
+CALCULATION TAKES A VERY LONG TIME (SEVERAL HOURS)!!!!. Note that we
+also have included the results of this calculation as a dataset of the
+package, so that the reader does not need to launch this function to
+reproduce further calculations:
+
+<<simulate-power, eval=FALSE>>=
+## The tested effects:
+effect <- log(c(1,2,3,5,10,30,50,100))
+qprop <- c("approach","attack")
+qvarp <- c("dog.presence","fence.presence")
+
+
+powerAnalysis <- list()
+
+## For each preventive measure
+for (iv in 1:length(qvarp)) {
+    liqp <- list()
+
+    ## For each response variable (behavior)
+    for (iq in 1:length(qprop)) {
+        lief <- list()
+
+        ## And for each effect strength:
+        for (ie in 1:length(effect)) {
+
+            varl <- list()
+
+            ## We simulate 100 datasets and fit 100 models
+            for (r in 1:100) {
+                cat("############################################################\n")
+                cat("############################################################\n")
+                cat("############################################################\n")
+                cat("############################################################\n")
+                cat("############################################################\n")
+                cat("Rep.",r,",eff=",ie,",qp=",iq,",vp=",iv,"\n")
+
+                ## Simulation data:
+                sid <- simulateDataPow(effect[ie], qvarp[iv], qprop[iq],
+                                       hotspotwolf, mcmcFinal)
+                re <- fitModelPow(qprop[iq], qvarp[iv], sid, hotspotwolf)
+                varl[[r]] <- re
+            }
+            ## Stores results
+            lief[[ie]] <- do.call(cbind,varl)
+        }
+        liqp[[iq]] <- lief
+        powerAnalysis[[iv]] <- liqp
+    }
+}
+    
+    
+resultsPA <- lapply(1:length(powerAnalysis), function(iv) {
+    do.call(cbind,lapply(1:length(powerAnalysis[[iv]]),
+                         function(iq) {
+                      sapply(1:length(powerAnalysis[[iv]][[iq]]),
+                             function(ie) {
+                          vl <- powerAnalysis[[iv]][[iq]][[ie]]
+                          interv <- apply(vl,2,quantile,c(0.05,0.95))
+                          pr <- mean(interv[1,]<=0&0<=interv[2,])
+                          return(pr)
+                      })
+                  }))
+})
+
+@ 
+
+
+<<set-values-of-power-analysis, echo=FALSE>>=
+## The tested effects:
+effect <- log(c(1,2,3,5,10,30,50,100))
+qprop <- c("approach","attack")
+qvarp <- c("dog.presence","fence.presence")
+@ 
+
+
+The package \texttt{wapat} contains a dataset named \texttt{resultsPA}
+with the results of this analysis:
+
+<<load-resultsPA>>=
+data(resultsPA)
+str(resultsPA)
+@ 
+
+
+For each preventive measure, each behavioral response and each effect
+strength, we show the proportion of the 90\% credible intervals on the
+coefficient that do not include the value 0:
+
+<<plot-power>>=
+library(ggplot2)
+
+## Prepare the data.frame for graphical display with ggplot2:
+effet <- c(1,2,3,5,10,30,50,100)
+do <- data.frame(var=rep("dog.presence", 2*length(effet)),
+                 effet=c(effet,effet),
+                 type=c(rep("approach",length(effet)),
+                        rep("attack",length(effet))),
+                 pr=c(resultsPA[[1]][,1],resultsPA[[1]][,2]))
+do2 <- data.frame(var=rep("fence.presence", 2*length(effet)),
+                  effet=c(effet,effet),
+                  type=c(rep("approach",length(effet)),
+                         rep("attack",length(effet))),
+                  pr=c(resultsPA[[2]][,1],resultsPA[[2]][,2]))
+do <- rbind(do,do2)
+do$var <- c(rep("LGD presence",16), rep("Fence presence", 16))
+do$Probability <- do$type
+
+## Show the graph
+ggplot(do, aes(x=effet,y=1-pr, col=Probability))+geom_point()+
+    geom_line()+facet_wrap(~var)+
+    geom_hline(yintercept=0.8)+xlab("1/Odds-ratio")+
+    ylab("Probability to identify an effect")+
+    scale_x_log10(breaks=c(1,2,3,5,10,30,50, 100))
+@ 
+
+This plot corresponds to Fig. 2 of the paper. We can also calculate
+the inverse odds-ratio of the effect for which we have a probability
+of 0.8 to detect an effect by interpolating the curves:
+
+
+<<>>=
+re <- lapply(c("LGD presence","Fence presence"), function(var) {
+    lap <- lapply(c("approach","attack"), function(type) {
+        dt <- do[do$var==var&do$type==type,c("effet","pr")]
+        k <- 0
+        for (i in 1:(nrow(dt)-1)) {
+            if (dt$pr[i]>0.2&dt$pr[i+1]<0.2)
+                k <- i
+        }
+        du <- dt[k:(k+1),]
+        return(round(approx(du$pr, du$effet, xout=0.2)$y,1))
+    })
+    names(lap) <- c("approach","attack")
+    return(lap)
+})
+names(re) <- c("LGD presence","Fence presence")
+re
+@ 
+
+These values correspond to the values given in the paper.
+
+\begin{thebibliography}{3}
+\providecommand{\natexlab}[1]{#1}
+
+\bibitem[{Gelman and Meng(1996)}]{Gelman1996c}
+Gelman, A. and Meng, X. 1996.
+\newblock Model checking and model improvement.
+\newblock --~In: Gilks, W. and Richardson, S. (eds.), Markov chain Monte Carlo
+  in practice, chap.~11. Chapman \& Hall/CRC, pp. 189--201.
+
+\bibitem[{Gelman and Rubin(1992)}]{Gelman1992}
+Gelman, A. and Rubin, D. 1992.
+\newblock {Inference from iterative simulation using multiple sequences}.
+\newblock -- Statistical Science 7: 457--472.
+
+\bibitem[{Simon et~al.(2024)}]{Simoninprep}
+Simon, R. et~al. 2024.
+\newblock Wolves on the hunt in sheep depredation hotspots in france.
+\newblock -- in prep.
+
+\end{thebibliography}
+
+
+\end{document}

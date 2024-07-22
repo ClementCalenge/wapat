@@ -1,0 +1,2 @@
+export("fitModelPow", "simulateDataPow","simulateWolfDataGOF")
+importFrom("stats", "rnorm", "rbinom")
