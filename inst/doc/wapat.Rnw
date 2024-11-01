@@ -1,6 +1,6 @@
 \documentclass[a4paper]{article}
 %\VignetteEngine{knitr::knitr}
-%\VignetteIndexEntry{Wolves on the hunt in sheep depredation hotspots in France}
+%\VignetteIndexEntry{Modeling the predation sequence of wolves in sheep depredation hotspots}
 %\VignetteDepends{knitr,ggplot2,nimble,coda}
 \usepackage{fancyvrb}
 \usepackage{color}
@@ -37,7 +37,7 @@
 \baselineskip 0.2cm
 
 
-\title{Appendix B of the article: Wolves on the hunt in sheep depredation hotspots in France.}
+\title{Appendix B of the article: Modeling the predation sequence of wolves in sheep depredation hotspots.}
 \author{Ricardo N. Simon, Cl\'{e}ment Calenge, Pierre-Yves Quenette,
   Nicolas Jean\\ \& Nolwenn Drouet-Hoguet.}  \date{}
 \setlength{\parindent}{0cm}
