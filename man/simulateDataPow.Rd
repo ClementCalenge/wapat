@@ -59,8 +59,9 @@ simulateDataPow(effect,
   observed) and 5 variables (the 5 response variables).
 }
 \references{
-  Simon R., Calenge C., Quenette P.Y., Jean N., Drouet-Hoguet N. (2023) Wolves on
-  the hunt in sheep depredation hotspots in France. In prep.
+  Simon R., Calenge C., Quenette P.Y., Jean N., Drouet-Hoguet N. (2024)
+  Modeling the predation sequence of wolves in sheep depredation
+  hotspots. In prep. 
 }
 \author{
   Clement Calenge \email{clement.calenge@ofb.gouv.fr}
